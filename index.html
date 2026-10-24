@@ -125,6 +125,7 @@ section{padding-block:72px 0}
 .product .btn{margin-top:4px;justify-self:start}
 .bundle{display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap;padding:22px;border:1px solid var(--accent);border-radius:var(--radius);background:var(--accent-soft);margin-top:8px}
 .bundle p{color:var(--muted)}
+#deal-banner{background:var(--accent);color:#fff;text-align:center;padding:10px 16px;font:600 .95rem/1.4 var(--body)}#deal-banner b{font-weight:700}
 .strike{text-decoration:line-through;color:var(--muted);font-weight:400;font-size:1rem;margin-left:8px}
 
 /* included / requirements */
@@ -195,6 +196,7 @@ footer{margin-top:80px;padding-block:28px 40px;border-top:1px solid var(--line);
     </nav>
   </header>
 
+  <div id="deal-banner" hidden></div>
   <main id="top">
     <div class="hero">
       <div>
@@ -256,7 +258,7 @@ footer{margin-top:80px;padding-block:28px 40px;border-top:1px solid var(--line);
 
       <article class="product">
         <div class="meta">
-          <div class="price">$499<small>one-time</small></div>
+          <div class="price" data-deal="rug">$499<small>one-time</small></div>
           <span class="status ready">Ready</span>
           <a class="btn primary" href="#order" data-pick="RugScope AI">Order RugScope AI</a>
         </div>
@@ -337,7 +339,7 @@ footer{margin-top:80px;padding-block:28px 40px;border-top:1px solid var(--line);
           <p>Don't want to run a server? Use our hosted RugScope bot: 200 checks a day, rug alerts on 25 tokens, AI verdicts. Free plan: 5 checks a day.</p>
         </div>
         <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
-          <div class="price">$19<small>/ 30 days</small></div>
+          <div class="price" data-deal="pro">$19<small>/ 30 days</small></div>
           <a class="btn ghost" href="#order" data-pick="Scanner Pro">Get Scanner Pro</a>
         </div>
       </div>
@@ -457,6 +459,22 @@ const CONTACT = [
   {label: "Email", value: "solvaralabs@protonmail.com"},
 ];
 const PRICES = {"RugScope AI": 499, "FastSwap": 799, "AI Meme Trader": 999, "Full stack bundle": 1799, "Scanner Pro": 19};
+
+
+// Launch deal: shown only until the deadline, then the page falls back to normal prices by itself.
+const DEAL_END = Date.parse("2026-10-25T21:00:00Z");
+if (Date.now() < DEAL_END) {
+  PRICES["RugScope AI"] = 399; PRICES["Scanner Pro"] = 9;
+  const rug = document.querySelector('[data-deal="rug"]');
+  if (rug) rug.innerHTML = '$399<span class="strike">$499</span>';
+  const pro = document.querySelector('[data-deal="pro"]');
+  if (pro) pro.innerHTML = '$9<span class="strike">$19</span><small>/ first 30 days</small>';
+  const o1 = document.querySelector('#pick option[value="RugScope AI"]'); if (o1) o1.textContent = "RugScope AI · $399 (launch deal)";
+  const o2 = document.querySelector('#pick option[value="Scanner Pro"]'); if (o2) o2.textContent = "Scanner Pro · $9 for 30 days (launch deal)";
+  const b = document.getElementById("deal-banner");
+  b.innerHTML = '<b>Launch deal</b> until Sunday 21:00 UTC: Scanner Pro $9 (normally $19) · RugScope AI $399 (normally $499)';
+  b.hidden = false;
+}
 
 const pick = document.getElementById("pick"), coin = document.getElementById("coin"),
       handle = document.getElementById("handle"), msg = document.getElementById("msg"),
