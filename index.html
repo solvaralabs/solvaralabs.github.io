@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Solvara Labs · Self-hosted Solana trading tools</title>
+<meta name="description" content="Self-hosted Solana trading tools. Full source code, one payment, your keys stay on your server.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=Share+Tech+Mono&display=swap">
+<meta property="og:title" content="Solvara Labs · Self-hosted Solana trading tools">
+<meta property="og:description" content="Rug checker, 0%-fee trading bot and an experimental AI trader, sold as full source code. Pay once, keep your keys.">
+<meta property="og:image" content="https://solvaralabs.github.io/og.png">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@Solvaralabs">
+<link rel="icon" href="favicon.png" type="image/png">
+<style>
+/* Layout: a ledger of tools. Split hero (claim + live-style token report), then one wide row per product
+   with a fixed meta column (price, status) and a content column; order flow ends the page. */
+:root{
+  --bg:#E9EAEE; --panel:#F7F7F9; --ink:#0B0D12; --muted:#4F5563; --line:#C9CCD4;
+  --accent:#D10F2B; --accent-soft:#F8DDE1; --accent-ink:#FFFFFF; --cyan:#00838F;
+  --good:#167A4A; --good-soft:#DDF1E6; --warn:#985F0A; --warn-soft:#F7ECD8; --bad:#C1121F; --bad-soft:#F9DEE0;
+  --grid:rgba(209,15,43,.06); --glow:none;
+  --display:"Chakra Petch", "Arial Narrow", system-ui, sans-serif;
+  --body:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono:"Share Tech Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --radius:3px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#05070A; --panel:#0C0F15; --ink:#EDEFF4; --muted:#8A93A6; --line:#1E232E;
+  --accent:#FF1F3D; --accent-soft:#2A0B11; --accent-ink:#05070A; --cyan:#00E5FF;
+  --good:#3BE38A; --good-soft:#0D2418; --warn:#FFB547; --warn-soft:#2B1F0B; --bad:#FF4D5E; --bad-soft:#2C0D12;
+  --grid:rgba(255,31,61,.05); --glow:0 0 22px rgba(255,31,61,.35);
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#05070A; --panel:#0C0F15; --ink:#EDEFF4; --muted:#8A93A6; --line:#1E232E;
+  --accent:#FF1F3D; --accent-soft:#2A0B11; --accent-ink:#05070A; --cyan:#00E5FF;
+  --good:#3BE38A; --good-soft:#0D2418; --warn:#FFB547; --warn-soft:#2B1F0B; --bad:#FF4D5E; --bad-soft:#2C0D12;
+  --grid:rgba(255,31,61,.05); --glow:0 0 22px rgba(255,31,61,.35);
+  color-scheme:dark}
+*{box-sizing:border-box}
+body{background-color:var(--bg);background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:44px 44px;color:var(--ink);font:16px/1.6 var(--body);
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
+.wrap{max-width:1120px;margin:0 auto}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+h1,h2,h3{font-family:var(--display);font-weight:700;line-height:1.1;text-wrap:balance;margin:0;letter-spacing:.01em}
+h1{font-size:clamp(2.1rem, 5vw, 3.6rem);text-transform:uppercase}
+h1 em{font-style:normal;color:var(--accent);text-shadow:var(--glow)}
+.glitch{text-shadow:-2px 0 color-mix(in srgb, var(--cyan) 55%, transparent),2px 0 color-mix(in srgb, var(--accent) 55%, transparent)}
+h2{font-size:clamp(1.4rem, 2.6vw, 1.9rem)}
+h3{font-size:1.15rem}
+p{margin:0}
+.mono{font-family:var(--mono)}
+.eyebrow{font:400 .8rem/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.eyebrow::before{content:"// ";color:var(--accent)}
+
+/* header */
+header.top{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-block:22px;flex-wrap:wrap}
+.mark{display:flex;align-items:center;gap:10px;font:700 1.15rem/1 var(--display);letter-spacing:.06em;text-transform:uppercase;color:var(--ink);text-decoration:none}
+.mark svg{width:34px;height:34px;filter:drop-shadow(var(--glow))}
+nav{display:flex;gap:20px;flex-wrap:wrap}
+nav a{color:var(--muted);text-decoration:none;font-weight:500}
+nav a:hover{color:var(--ink)}
+
+/* hero */
+.hero{display:grid;grid-template-columns:1.05fr .95fr;gap:48px;align-items:center;padding-block:36px 64px}
+.hero > *{min-width:0}
+.lede{font-size:1.15rem;color:var(--muted);max-width:52ch;margin-top:18px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+.chip{font:400 .85rem/1 var(--mono);padding:8px 10px;border:1px solid var(--line);border-radius:2px;color:var(--ink);background:var(--panel)}
+.ctas{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:12px 20px;border-radius:0;font-weight:700;letter-spacing:.06em;text-transform:uppercase;font-size:.92rem !important;clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px);text-decoration:none;border:1px solid transparent;cursor:pointer;font-size:1rem;font-family:var(--body)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);font-family:var(--display)}
+.btn.primary:hover{box-shadow:var(--glow)}
+.btn.ghost{border-color:var(--line);color:var(--ink);background:var(--panel);font-family:var(--display)}
+.btn:hover{filter:brightness(1.06)}
+
+/* example report */
+.report{margin:0;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:20px;box-shadow:0 0 0 1px color-mix(in srgb, var(--accent) 25%, transparent),0 24px 60px -30px rgba(209,15,43,.45)}
+.report-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.tk{font:700 1.05rem/1.2 var(--display)}
+.addr{font:400 .78rem/1.4 var(--mono);color:var(--muted);word-break:break-all;margin-top:4px}
+.score{display:flex;align-items:center;gap:14px;margin-top:16px;padding:12px 14px;border-radius:var(--radius);background:var(--warn-soft)}
+.score b{font:700 1.6rem/1 var(--display);color:var(--warn);font-variant-numeric:tabular-nums}
+.score span{color:var(--warn);font-weight:600}
+.meter{height:6px;border-radius:99px;background:var(--line);margin-top:6px;overflow:hidden}
+.meter i{display:block;height:100%;width:58%;background:var(--warn)}
+.rows{display:grid;gap:8px;margin-top:16px;font-size:.92rem}
+.row{display:flex;gap:10px;align-items:flex-start}
+.dot{flex:none;width:8px;height:8px;border-radius:50%;margin-top:.55em}
+.dot.g{background:var(--good)}.dot.w{background:var(--warn)}.dot.b{background:var(--bad)}
+.mini{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:16px}
+.mini div{border:1px solid var(--line);border-radius:var(--radius);padding:8px 10px}
+.mini small{display:block;font:500 .68rem/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.mini b{font:500 .95rem/1.6 var(--mono);font-variant-numeric:tabular-nums}
+.example-tag{font:500 .7rem/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:14px}
+
+/* trust strip */
+.strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+.strip div{background:var(--panel);padding:18px}
+.strip b{display:block;font-weight:600;margin-bottom:4px}
+.strip p{color:var(--muted);font-size:.93rem}
+
+/* products */
+section{padding-block:72px 0}
+.sec-head{display:grid;gap:10px;max-width:62ch;margin-bottom:28px}
+.sec-head p{color:var(--muted)}
+.product{display:grid;grid-template-columns:240px 1fr;gap:32px;padding-block:32px;border-top:1px solid var(--line)}
+.product > *{min-width:0}
+.meta{display:grid;gap:10px;align-content:start}
+.price{font:700 2rem/1 var(--display);font-variant-numeric:tabular-nums}
+.price small{font:400 .85rem/1 var(--body);color:var(--muted);margin-left:4px}
+.status{justify-self:start;font:500 .72rem/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;padding:6px 8px;border-radius:2px}
+.status.ready{background:var(--good-soft);color:var(--good)}
+.status.exp{background:var(--warn-soft);color:var(--warn)}
+.product h3{font-size:1.4rem}
+.tagline{color:var(--muted);margin-top:6px;max-width:60ch}
+.feats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 28px;margin:18px 0 0;padding:0;list-style:none}
+.feats li{position:relative;padding-left:18px;font-size:.96rem}
+.feats li::before{content:"";position:absolute;left:0;top:.62em;width:7px;height:7px;border-radius:2px;background:var(--accent)}
+.feats b{font-weight:600}
+.product .btn{margin-top:4px;justify-self:start}
+.bundle{display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap;padding:22px;border:1px solid var(--accent);border-radius:var(--radius);background:var(--accent-soft);margin-top:8px}
+.bundle p{color:var(--muted)}
+.strike{text-decoration:line-through;color:var(--muted);font-weight:400;font-size:1rem;margin-left:8px}
+
+/* included / requirements */
+.two{display:grid;grid-template-columns:1fr 1fr;gap:28px}
+.two > *{min-width:0}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:22px}
+.box ul{margin:12px 0 0;padding-left:18px;display:grid;gap:6px}
+.box h3{font-size:1.05rem}
+
+/* order */
+.steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;counter-reset:s}
+.steps > div{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px;min-width:0}
+.steps > div::before{counter-increment:s;content:"Step " counter(s);display:block;font:500 .72rem/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:10px}
+.steps p{color:var(--muted);font-size:.94rem;margin-top:4px}
+.order{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:28px}
+.order > *{min-width:0}
+.field{display:grid;gap:6px;margin-top:14px}
+label{font-weight:600;font-size:.92rem}
+select,input{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px;width:100%}
+.msg{font:400 .86rem/1.55 var(--mono);white-space:pre-wrap;background:var(--bg);border:1px solid var(--line);border-radius:var(--radius);padding:14px;margin-top:14px;min-height:150px;overflow-wrap:anywhere}
+.contact{display:grid;gap:12px;margin-top:14px}
+.contact-row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px}
+.contact-row span{font-family:var(--mono);user-select:all;overflow-wrap:anywhere}
+.copy{font:600 .85rem/1 var(--body);padding:8px 12px;border-radius:2px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer}
+.note{color:var(--muted);font-size:.9rem;margin-top:10px}
+
+/* faq */
+details{border-top:1px solid var(--line);padding-block:16px}
+details:last-child{border-bottom:1px solid var(--line)}
+summary{cursor:pointer;font-weight:600;list-style:none;display:flex;justify-content:space-between;gap:12px}
+summary::after{content:"+";font-family:var(--mono);color:var(--muted)}
+details[open] summary::after{content:"–"}
+details p{color:var(--muted);margin-top:10px;max-width:70ch}
+
+footer{margin-top:80px;padding-block:28px 40px;border-top:1px solid var(--line);color:var(--muted);font-size:.88rem;display:grid;gap:10px}
+
+@media (max-width:900px){
+  .hero{grid-template-columns:1fr;gap:32px}
+  .product{grid-template-columns:1fr;gap:16px}
+  .strip{grid-template-columns:1fr 1fr}
+  .steps{grid-template-columns:1fr 1fr}
+  .order,.two{grid-template-columns:1fr}
+}
+@media (max-width:520px){
+  .feats{grid-template-columns:1fr}
+  .strip,.steps{grid-template-columns:1fr}
+  .mini{grid-template-columns:1fr 1fr}
+}
+@media (prefers-reduced-motion: no-preference){
+  .meter i{animation:fill 1.2s ease-out both}
+  @keyframes fill{from{width:8%}to{width:58%}}
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <a class="mark" href="#top" aria-label="Solvara Labs home">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 3 L57 17.5 V46.5 L32 61 L7 46.5 V17.5 Z" fill="none" stroke="var(--accent)" stroke-width="2" opacity=".55"/><path d="M47 13.5 H23 L15.5 21 V26 L21 31.5 H43 L48.5 37 V43 L41 50.5 H17" fill="none" stroke="var(--cyan)" stroke-width="5.2" stroke-linecap="square" opacity=".6" transform="translate(-1.6 0)"/><path d="M47 13.5 H23 L15.5 21 V26 L21 31.5 H43 L48.5 37 V43 L41 50.5 H17" fill="none" stroke="var(--accent)" stroke-width="5.2" stroke-linecap="square"/></svg>
+      Solvara Labs
+    </a>
+    <nav aria-label="Main">
+      <a href="#products">Products</a>
+      <a href="#included">What you get</a>
+      <a href="#order">How to buy</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+  </header>
+
+  <main id="top">
+    <div class="hero">
+      <div>
+        <div class="eyebrow">Self-hosted Solana trading tools</div>
+        <h1 class="glitch" style="margin-top:14px">Run your own trading stack. Pay once. <em>Keep your keys.</em></h1>
+        <p class="lede">Telegram bots for checking tokens, trading fast and running an AI trader, sold as full source code. They run on your server with your own API keys. No monthly fee, no 1% cut of your trades, and no third party holding your wallet.</p>
+        <div class="chips">
+          <span class="chip">Full source</span><span class="chip">0% trade fees</span><span class="chip">Runs on a small VPS</span><span class="chip">Pay in USDC or SOL</span>
+        </div>
+        <div class="ctas">
+          <a class="btn primary" href="#products">See the tools</a>
+          <a class="btn ghost" href="https://t.me/SolvaraScanBot" target="_blank" rel="noopener">Try the free scanner</a>
+        </div>
+      </div>
+
+      <figure class="report" aria-label="Example RugScope AI report">
+        <div class="report-head">
+          <div>
+            <div class="tk">$EXAMPLE · Example Coin</div>
+            <div class="addr">Ex4mpLe1111111111111111111111111111111pump</div>
+          </div>
+          <span class="eyebrow">RugScope AI</span>
+        </div>
+        <div class="score">
+          <b>58</b>
+          <div style="flex:1">
+            <span>HIGH risk</span>
+            <div class="meter"><i></i></div>
+          </div>
+        </div>
+        <div class="rows">
+          <div class="row"><i class="dot g"></i><span>Mint and freeze authority revoked</span></div>
+          <div class="row"><i class="dot b"></i><span>Bundled launch: 4 wallets took 14.2% in the creation block</span></div>
+          <div class="row"><i class="dot w"></i><span>Creator still holds 6.8% of supply</span></div>
+          <div class="row"><i class="dot w"></i><span>Already pumped: +240% in 1h, late-entry risk</span></div>
+        </div>
+        <div class="mini">
+          <div><small>Liquidity</small><b>$41.2K</b></div>
+          <div><small>Top 10</small><b>27.4%</b></div>
+          <div><small>Age</small><b>3h 12m</b></div>
+        </div>
+        <figcaption class="example-tag">Example output · illustrative token</figcaption>
+      </figure>
+    </div>
+
+    <div class="strip">
+      <div><b>You own the code</b><p>Every line is included. Read it, change it, run it.</p></div>
+      <div><b>Keys stay with you</b><p>Wallet keys never leave your server. No custody, no phone-home.</p></div>
+      <div><b>Safety built in</b><p>Transactions are checked before signing. Spend limits and honeypot blocks are on by default.</p></div>
+      <div><b>Guided setup</b><p>Docker files, a step-by-step guide and a doctor command that tests every connection.</p></div>
+    </div>
+
+    <section id="products">
+      <div class="sec-head">
+        <div class="eyebrow">Products</div>
+        <h2>Three tools, one stack</h2>
+        <p>Each one works on its own. Together they cover finding tokens, checking them and trading them.</p>
+      </div>
+
+      <article class="product">
+        <div class="meta">
+          <div class="price">$499<small>one-time</small></div>
+          <span class="status ready">Ready</span>
+          <a class="btn primary" href="#order" data-pick="RugScope AI">Order RugScope AI</a>
+        </div>
+        <div>
+          <h3>RugScope AI</h3>
+          <p class="tagline">A Telegram bot that tells you in seconds whether a Solana token looks like a rug. Paste a contract address or a pump.fun, DexScreener or Solscan link.</p>
+          <ul class="feats">
+            <li><b>Contract checks:</b> can the dev mint more or freeze your wallet</li>
+            <li><b>Launch forensics:</b> bundled buys, snipers and creator holdings</li>
+            <li><b>Holder breakdown</b> with pools and bonding curves excluded</li>
+            <li><b>Market signals:</b> thin pools, fake volume, pumps and dumps</li>
+            <li><b>AI verdict</b> in plain language, with a hard monthly cost cap</li>
+            <li><b>Rug alerts:</b> pings you if liquidity is pulled or price crashes</li>
+            <li>Works in groups, with optional access codes if you run a community</li>
+            <li>Risk score from 0 to 100</li>
+          </ul>
+        </div>
+      </article>
+
+      <article class="product">
+        <div class="meta">
+          <div class="price">$799<small>one-time</small></div>
+          <span class="status ready">Ready</span>
+          <a class="btn primary" href="#order" data-pick="FastSwap">Order FastSwap</a>
+        </div>
+        <div>
+          <h3>FastSwap</h3>
+          <p class="tagline">Your own private trading bot in Telegram, like the popular hosted bots, but with 0% fees and the wallet key on your own server.</p>
+          <ul class="feats">
+            <li><b>One-tap buy and sell</b> from a token card</li>
+            <li><b>Copy-trading:</b> follow wallets, mirror their buys and sells</li>
+            <li><b>Limit orders</b> to buy dips or sell at a target</li>
+            <li><b>Take-profit, stop-loss and trailing stops</b></li>
+            <li><b>Risk score</b> on every token before you buy</li>
+            <li>Honeypot block, per-trade and daily spend limits</li>
+            <li>Every transaction decoded and checked before signing</li>
+            <li>Broadcast to several RPCs for faster landing</li>
+          </ul>
+        </div>
+      </article>
+
+      <article class="product">
+        <div class="meta">
+          <div class="price">$999<small>one-time</small></div>
+          <span class="status exp">Experimental</span>
+          <a class="btn primary" href="#order" data-pick="AI Meme Trader">Order AI Meme Trader</a>
+        </div>
+        <div>
+          <h3>AI Meme Trader</h3>
+          <p class="tagline">An autonomous agent that researches and trades Solana meme coins, with Claude making the decisions and a hard safety engine underneath that the AI cannot override.</p>
+          <ul class="feats">
+            <li><b>Two-stage AI:</b> quick triage, then a deep investigation with tools</li>
+            <li><b>Sources:</b> DexScreener, Telegram channels, tracked wallets, web search</li>
+            <li><b>Isolated signer</b> with no network access and its own spend caps</li>
+            <li><b>Paper mode first:</b> live trading unlocks after a profitable paper run</li>
+            <li>Baseline bots run beside it, so you see if the AI beats simple rules</li>
+            <li>Private dashboard, phone alerts, daily reviews</li>
+            <li>Kill switch, drawdown halt, daily loss limit</li>
+            <li>No profit track record yet: sold as experimental</li>
+          </ul>
+        </div>
+      </article>
+
+      <div class="bundle">
+        <div>
+          <h3>The full stack</h3>
+          <p>All three tools, one license.</p>
+        </div>
+        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+          <div class="price">$1,799<span class="strike">$2,297</span></div>
+          <a class="btn primary" href="#order" data-pick="Full stack bundle">Order the bundle</a>
+        </div>
+      </div>
+
+      <div class="bundle" style="border-color:var(--line);background:var(--panel)">
+        <div>
+          <h3>Scanner Pro</h3>
+          <p>Don't want to run a server? Use our hosted RugScope bot: 200 checks a day, rug alerts on 25 tokens, AI verdicts. Free plan: 5 checks a day.</p>
+        </div>
+        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+          <div class="price">$19<small>/ 30 days</small></div>
+          <a class="btn ghost" href="#order" data-pick="Scanner Pro">Get Scanner Pro</a>
+        </div>
+      </div>
+    </section>
+
+    <section id="included">
+      <div class="two">
+        <div class="box">
+          <div class="eyebrow">What you get</div>
+          <h3 style="margin-top:8px">With every purchase</h3>
+          <ul>
+            <li>Full Python source code</li>
+            <li>Setup guide, Docker files and example settings</li>
+            <li>A doctor command that tests your keys and connections</li>
+            <li>Automated tests for the core logic</li>
+            <li>30 days of setup help by Telegram or email</li>
+            <li>Bug-fix updates for 6 months</li>
+            <li>Commercial license for your own use or your own community</li>
+          </ul>
+        </div>
+        <div class="box">
+          <div class="eyebrow">What you need</div>
+          <h3 style="margin-top:8px">To run it</h3>
+          <ul>
+            <li>A small Linux server (about $5 a month) or a PC that stays on</li>
+            <li>A Telegram bot token from @BotFather (free)</li>
+            <li>A Helius RPC key (free tier works to start)</li>
+            <li>A Jupiter API key for trading (free)</li>
+            <li>A Claude API key for the AI features, pay-as-you-go with your own cap</li>
+            <li>Basic comfort with a terminal. The guide walks you through each step.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="order">
+      <div class="sec-head">
+        <div class="eyebrow">How to buy</div>
+        <h2>Pay in USDC or SOL on Solana</h2>
+        <p>Every order gets its own invoice, so payments are never mixed up.</p>
+      </div>
+      <div class="steps">
+        <div><b>Send your order</b><p>Message <a href="https://t.me/SolvaraSupportBot" target="_blank" rel="noopener">@SolvaraSupportBot</a> on Telegram, or copy the order message below.</p></div>
+        <div><b>Get your invoice</b><p>You receive the payment address and an exact amount for your order.</p></div>
+        <div><b>Pay on Solana</b><p>Send USDC or SOL and reply with the transaction link.</p></div>
+        <div><b>Get the code</b><p>Your download and license arrive within 12 hours of the payment confirming.</p></div>
+      </div>
+
+      <div class="order">
+        <div class="box">
+          <h3>Your order</h3>
+          <div class="field">
+            <label for="pick">Product</label>
+            <select id="pick">
+              <option value="RugScope AI">RugScope AI · $499</option>
+              <option value="FastSwap">FastSwap · $799</option>
+              <option value="AI Meme Trader">AI Meme Trader · $999</option>
+              <option value="Full stack bundle">Full stack bundle · $1,799</option>
+              <option value="Scanner Pro">Scanner Pro · $19 / 30 days</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="coin">Pay with</label>
+            <select id="coin">
+              <option value="USDC">USDC (Solana)</option>
+              <option value="SOL">SOL</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="handle">Your Telegram or email (for delivery)</label>
+            <input id="handle" type="text" placeholder="@yourname or you@example.com" autocomplete="off">
+          </div>
+          <div class="msg" id="msg" aria-live="polite"></div>
+          <div style="display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap">
+            <button class="btn primary" id="copyMsg" type="button">Copy order message</button>
+            <span class="note" id="copied" role="status"></span>
+          </div>
+        </div>
+        <div class="box">
+          <h3>Send it to us</h3>
+          <div class="contact" id="contact"></div>
+          <p class="note">We never ask for your seed phrase or private key, and nobody from Solvara Labs will message you first. Check that you're talking to the handles above.</p>
+          <p class="note">Questions before buying are welcome. Ask for the setup guide or a feature walkthrough.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="faq">
+      <div class="sec-head">
+        <div class="eyebrow">FAQ</div>
+        <h2>Before you buy</h2>
+      </div>
+      <details><summary>Will these tools make me money?</summary><p>They are tools, not a promise. RugScope helps you avoid bad tokens, FastSwap executes your decisions faster and cheaper, and the AI Meme Trader is an experiment with strict risk limits. Meme coins are extremely risky and most go to zero. Never trade money you can't afford to lose.</p></details>
+      <details><summary>Do you ever hold my wallet or keys?</summary><p>No. Everything runs on your server. The wallet key is a file you create, and it signs transactions locally. The code doesn't send data to us.</p></details>
+      <details><summary>Why one-time pricing instead of a subscription?</summary><p>You run it on your own server with your own API keys, so there is nothing for us to host. You pay once and own your copy.</p></details>
+      <details><summary>How does FastSwap compare to hosted trading bots?</summary><p>Hosted bots usually take about 1% of every trade and hold your wallet for you. FastSwap takes nothing and your key stays on your machine. At $5,000 of monthly volume, 1% is $50 a month.</p></details>
+      <details><summary>I'm not very technical. Can I still set it up?</summary><p>If you can follow a step-by-step guide and paste commands into a terminal, yes. Each product has a doctor command that tells you exactly which key or setting is missing, and setup help is included for 30 days.</p></details>
+      <details><summary>Can I resell the code?</summary><p>No. The license covers your own use, including running the bot for your own community. Reselling or publishing the code isn't allowed.</p></details>
+      <details><summary>What's Scanner Pro?</summary><p>A prepaid 30-day pass for our hosted scanner bot, for people who want rug checks without running anything. It doesn't renew by itself: you get a reminder before it ends. Want unlimited checks for your own community, with your own branding? That's RugScope AI.</p></details>
+      <details><summary>Refunds?</summary><p>Because you receive the full source code, sales are final once the download is delivered. Ask any questions before you pay and we'll answer them.</p></details>
+    </section>
+  </main>
+
+  <footer>
+    <div><b style="color:var(--ink)">Solvara Labs</b> · Self-hosted Solana trading tools</div>
+    <div>Software is provided as is. Nothing on this site or in the products is financial advice. Trading digital assets carries a high risk of loss.</div>
+  </footer>
+</div>
+
+<script>
+/* Contact details: edit here when the accounts are live. */
+const CONTACT = [
+  {label: "Telegram · orders and support (24/7)", value: "@SolvaraSupportBot", href: "https://t.me/SolvaraSupportBot"},
+  {label: "Telegram channel", value: "@SolvaraLabs", href: "https://t.me/SolvaraLabs"},
+  {label: "Free rug scanner", value: "@SolvaraScanBot", href: "https://t.me/SolvaraScanBot"},
+  {label: "X", value: "@Solvaralabs", href: "https://x.com/Solvaralabs"},
+  {label: "Email", value: "solvaralabs@protonmail.com"},
+];
+const PRICES = {"RugScope AI": 499, "FastSwap": 799, "AI Meme Trader": 999, "Full stack bundle": 1799, "Scanner Pro": 19};
+
+const pick = document.getElementById("pick"), coin = document.getElementById("coin"),
+      handle = document.getElementById("handle"), msg = document.getElementById("msg"),
+      copied = document.getElementById("copied");
+
+function orderText(){
+  const p = pick.value, c = coin.value, h = handle.value.trim() || "(your Telegram or email)";
+  return `New order: ${p}\nPrice: $${PRICES[p].toLocaleString("en-US")} paid in ${c} on Solana\nDeliver to: ${h}\n\nPlease send my invoice.`;
+}
+function render(){ msg.textContent = orderText(); }
+[pick, coin, handle].forEach(el => el.addEventListener("input", render));
+render();
+
+function copyText(text, onDone, fallbackEl){
+  try {
+    navigator.clipboard.writeText(text).then(onDone, () => selectEl(fallbackEl));
+  } catch (e) { selectEl(fallbackEl); }
+}
+function selectEl(el){
+  if (!el) return;
+  const r = document.createRange(); r.selectNodeContents(el);
+  const s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+  copied.textContent = "Selected. Press copy on your keyboard.";
+}
+document.getElementById("copyMsg").addEventListener("click", () =>
+  copyText(orderText(), () => { copied.textContent = "Copied. Now send it to us."; }, msg));
+
+const box = document.getElementById("contact");
+CONTACT.forEach(c => {
+  const row = document.createElement("div"); row.className = "contact-row";
+  const left = document.createElement("div");
+  const lab = document.createElement("div"); lab.className = "eyebrow"; lab.textContent = c.label;
+  const val = document.createElement(c.href ? "a" : "span"); val.textContent = c.value;
+  if (c.href) { val.href = c.href; val.target = "_blank"; val.rel = "noopener"; }
+  left.append(lab, val);
+  const b = document.createElement("button"); b.className = "copy"; b.type = "button"; b.textContent = "Copy";
+  b.addEventListener("click", () => copyText(c.value, () => { b.textContent = "Copied"; setTimeout(() => b.textContent = "Copy", 1600); }, val));
+  row.append(left, b); box.append(row);
+});
+
+document.querySelectorAll("[data-pick]").forEach(a => a.addEventListener("click", () => {
+  pick.value = a.dataset.pick; render();
+}));
+</script>
+
+</body>
+</html>
